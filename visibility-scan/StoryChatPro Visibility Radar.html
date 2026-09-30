@@ -1,0 +1,483 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>StoryChatPro Visibility Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap">
+<style>
+/* Layout: one scan report read top-down: verdict tiles, what changed, next actions,
+   then evidence panels in a two-column grid that stacks on phones. StoryChatPro brand guide. */
+:root {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --ink: #0b1f45;
+  --ink-2: #44506b;
+  --muted: #6f7a93;
+  --line: #e1e5ee;
+  --track: #eef1f6;
+  --navy: #1b3570;
+  --bar: #2f56a8;
+  --orange: #f5920d;
+  --orange-ink: #9a5a05;
+  --orange-wash: #fff4e5;
+  --good: #0a7d0a;
+  --good-wash: #e6f4e6;
+  --crit: #b3261e;
+  --crit-wash: #fbe9e7;
+  --warn: #8a5a00;
+  --warn-wash: #fff3d6;
+  --focus: #2f56a8;
+  --font-display: "DM Serif Display", Georgia, "Times New Roman", serif;
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #081735; --surface: #0f2248; --ink: #f2f5fb; --ink-2: #bcc5d8; --muted: #8e9ab3;
+    --line: #22386a; --track: #18305f; --navy: #9fb6ea; --bar: #5f80d2; --orange: #d97706;
+    --orange-ink: #f8b454; --orange-wash: #2e2410; --good: #5fcf5f; --good-wash: #12301a;
+    --crit: #ff8a80; --crit-wash: #3a1718; --warn: #f5c05a; --warn-wash: #33290f; --focus: #9fb6ea;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #081735; --surface: #0f2248; --ink: #f2f5fb; --ink-2: #bcc5d8; --muted: #8e9ab3;
+  --line: #22386a; --track: #18305f; --navy: #9fb6ea; --bar: #5f80d2; --orange: #d97706;
+  --orange-ink: #f8b454; --orange-wash: #2e2410; --good: #5fcf5f; --good-wash: #12301a;
+  --crit: #ff8a80; --crit-wash: #3a1718; --warn: #f5c05a; --warn-wash: #33290f; --focus: #9fb6ea;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: grid; gap: 20px; }
+@media (min-width: 700px) { .wrap { padding-inline: 28px; } }
+a { color: var(--navy); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+h1, h2 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; letter-spacing: 0.005em; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.08; }
+h2 { font-size: 22px; line-height: 1.2; }
+p { margin: 0; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--ink-2); max-width: 62ch; font-size: 16px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 16px; font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
+header { display: grid; gap: 10px; padding-block: 6px 4px; }
+
+/* Verdict tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+.tile .label { color: var(--ink-2); font-size: 14px; }
+.tile .value { font-size: 40px; font-weight: 600; line-height: 1.05; letter-spacing: -0.01em; }
+.tile .value small { font-size: 18px; font-weight: 500; color: var(--muted); }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; width: fit-content; }
+.pill.crit { background: var(--crit-wash); color: var(--crit); }
+.pill.good { background: var(--good-wash); color: var(--good); }
+.pill.warn { background: var(--warn-wash); color: var(--warn); }
+.pill.us { background: var(--orange-wash); color: var(--orange-ink); }
+.pill svg { width: 12px; height: 12px; flex: none; }
+
+/* Actions + changes band */
+.band { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 900px) { .band { grid-template-columns: 1.5fr 1fr; } }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.actions { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: act; }
+.actions li { display: grid; grid-template-columns: 28px 1fr; gap: 4px 10px; }
+.actions li::before { counter-increment: act; content: counter(act); grid-row: span 3; width: 26px; height: 26px; border-radius: 50%; background: var(--navy); color: var(--surface); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.actions .what { font-weight: 600; }
+.actions .why { color: var(--ink-2); font-size: 14px; }
+.actions .who { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.changes { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--ink-2); font-size: 14px; }
+
+/* Panels */
+.grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } .span2 { grid-column: 1 / -1; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px 20px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.panel-head { display: grid; gap: 4px; }
+.note { color: var(--muted); font-size: 13px; }
+.note strong { color: var(--ink-2); font-weight: 600; }
+
+/* Bar lists: label | bar | value. Values are always printed, so the list doubles as the table view. */
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(96px, 38%) 1fr auto; align-items: center; gap: 10px; font-size: 14px; border-radius: 6px; padding: 2px 4px; margin: 0 -4px; }
+.bar-row:hover { background: var(--track); }
+.bar-label { overflow-wrap: anywhere; color: var(--ink); }
+.bar-track { height: 12px; position: relative; }
+.bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bar); border-radius: 0 4px 4px 0; min-width: 0; }
+.bar-val { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13.5px; text-align: right; min-width: 44px; }
+.bar-row.us .bar { background: var(--orange); }
+.bar-row.us .bar-label { font-weight: 700; }
+.bar-row.us .bar-val { color: var(--ink); font-weight: 700; }
+.zero-mark { position: absolute; left: 0; top: -2px; bottom: -2px; width: 2px; background: var(--orange); border-radius: 1px; }
+.axis { display: grid; grid-template-columns: minmax(96px, 38%) 1fr auto; gap: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); padding-inline: 4px; margin-inline: -4px; }
+.axis .ticks { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 3px; }
+.axis .pad { min-width: 44px; }
+@media (max-width: 560px) {
+  .bar-row { grid-template-columns: 1fr auto; row-gap: 3px; padding-block: 4px; }
+  .bar-row .bar-label { grid-column: 1 / -1; }
+  .axis { grid-template-columns: 1fr auto; }
+  .axis > span:first-child { display: none; }
+}
+.sub { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.chip { font-family: var(--font-mono); font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; white-space: nowrap; }
+
+/* Segmented control */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; background: var(--bg); width: fit-content; }
+.seg button { font: inherit; font-size: 13.5px; border: 0; background: transparent; color: var(--ink-2); padding: 5px 12px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(11, 31, 69, 0.12); }
+.assume { font-size: 13px; color: var(--ink-2); }
+
+/* Calendar strip */
+.cal { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
+.cal .m { display: grid; gap: 4px; justify-items: center; }
+.cal .cell { width: 100%; aspect-ratio: 1 / 1.15; max-width: 100%; border-radius: 4px; display: grid; place-items: center; font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cal .mon { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.cal .now .mon { color: var(--ink); font-weight: 500; }
+.cal .now .cell { outline: 2px solid var(--orange); outline-offset: 1px; }
+.legend { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+.legend .ramp { display: flex; gap: 2px; }
+.legend .ramp span { width: 18px; height: 10px; border-radius: 2px; }
+.soon { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.soon li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 8px; }
+.soon .when { font-family: var(--font-mono); font-size: 12px; color: var(--muted); text-align: right; }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: left; font-family: var(--font-mono); font-weight: 500; font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding: 0 10px 8px 0; border-bottom: 1px solid var(--line); }
+td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+td .small { color: var(--muted); font-size: 12.5px; display: block; }
+tr:last-child td { border-bottom: 0; }
+
+/* Sentiment */
+.voices { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.voices li { display: grid; gap: 3px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; }
+.voices li:first-child { border-top: 0; padding-top: 0; }
+.voices .src { font-size: 12.5px; color: var(--muted); }
+.tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; width: fit-content; background: var(--track); color: var(--ink-2); }
+.tag.worried, .tag.hostile, .tag.distrust { background: var(--crit-wash); color: var(--crit); }
+.tag.pattern, .tag.market-gap { background: var(--good-wash); color: var(--good); }
+.tag.caution { background: var(--warn-wash); color: var(--warn); }
+
+footer { display: grid; gap: 10px; color: var(--ink-2); font-size: 13.5px; }
+footer details summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+footer ul { columns: 2 260px; padding-left: 18px; margin: 10px 0 0; font-size: 13px; }
+footer li { break-inside: avoid; margin-bottom: 4px; overflow-wrap: anywhere; }
+
+/* Tooltip */
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 12.5px; padding: 6px 9px; border-radius: 6px; max-width: 260px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+@media (prefers-reduced-motion: no-preference) { .bar { transition: width 0.35s ease; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">StoryChatPro · Visibility scan</span>
+    <h1>Where writers look for script feedback, and whether they find us</h1>
+    <p class="lede" id="lede"></p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="tiles" id="tiles" aria-label="Headline numbers"></section>
+
+  <section class="band">
+    <div class="box">
+      <h2>Do these next</h2>
+      <ol class="actions" id="actions"></ol>
+    </div>
+    <div class="box">
+      <h2 id="changes-title">Since the last scan</h2>
+      <ul class="changes" id="changes"></ul>
+    </div>
+  </section>
+
+  <section class="grid">
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Who shows up when writers search</h2>
+        <p class="note" id="search-note"></p>
+      </div>
+      <div class="bars" id="search-bars"></div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Who the best-of lists name</h2>
+        <p class="note" id="lists-note"></p>
+      </div>
+      <div class="bars" id="list-bars"></div>
+    </article>
+
+    <article class="panel span2">
+      <div class="panel-head">
+        <h2>What one script's feedback costs a writer</h2>
+        <p class="note">Several paid human reads versus AI feedback during rewrites and one human read at the end. This is a model built on the assumptions below, not measured spending.</p>
+      </div>
+      <div class="seg" role="group" aria-label="Choose a case">
+        <button type="button" id="case-low" data-case="low" aria-pressed="false">Low</button>
+        <button type="button" id="case-middle" data-case="middle" aria-pressed="true">Middle</button>
+        <button type="button" id="case-high" data-case="high" aria-pressed="false">High</button>
+      </div>
+      <div class="bars" id="cost-bars"></div>
+      <p class="assume" id="cost-assume"></p>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Can search engines and AI tools read the site?</h2>
+        <p class="note">Each address should serve its own file. When it serves the login page instead, crawlers learn nothing about StoryChatPro.</p>
+      </div>
+      <div class="tbl-wrap"><table id="site-table"><thead><tr><th>Address</th><th>Serves</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Application calendar</h2>
+        <p class="note" id="cal-note"></p>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="legend" id="cal-legend"></div>
+      <div class="sub">Open now or opening soon</div>
+      <ul class="soon" id="soon"></ul>
+    </article>
+
+    <article class="panel span2">
+      <div class="panel-head">
+        <h2>Price map</h2>
+        <p class="note">Lowest listed price for each option. <strong>AI coaches</strong> promise feedback without writing for you, which is StoryChatPro's own promise.</p>
+      </div>
+      <div class="grid">
+        <div class="bars" id="monthly-bars"><div class="sub">Monthly plans</div></div>
+        <div class="bars" id="script-bars"><div class="sub">Pay per script or session</div></div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>How big is the market</h2>
+        <p class="note">No one publishes how many writers pay for human feedback. These clues count different things in different years, so read them as scale, not as a total.</p>
+      </div>
+      <div class="tbl-wrap"><table id="market-table"><thead><tr><th>What's counted</th><th>Number</th></tr></thead><tbody></tbody></table></div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>What writers say about AI</h2>
+        <p class="note">Surveys, tests and reporting. The source type is shown because vendor claims run high.</p>
+      </div>
+      <ul class="voices" id="voices"></ul>
+    </article>
+  </section>
+
+  <footer>
+    <p id="method"></p>
+    <details>
+      <summary>Sources for this scan</summary>
+      <ul id="sources"></ul>
+    </details>
+  </footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const DATA = {"summary": {"scan_date": "2026-09-30", "brand": "StoryChatPro", "search": {"queries": 9, "generic_queries": 7, "generic_results": 63, "brand_in_generic": 0, "branded_results": 16, "brand_in_branded": 2, "branded_hits": ["linkedin.com (social post (Chris Riley))", "storychatpro.com (login page)"], "vendor_share_pct": 76, "top_tools": [["OnDesk", 7], ["ScriptReader.ai", 7], ["Sudowrite", 6], ["The Black List", 5], ["Gemini", 4], ["Script Reader Pro", 4], ["Callaia", 3], ["ChatGPT", 3], ["Claude", 3], ["Final Draft", 3]]}, "lists": {"checked": 10, "brand_listed": 0, "by_tool_sellers": 7, "most_listed": [["Arc Studio Pro", 8], ["ChatGPT", 8], ["Claude", 6], ["Final Draft", 6], ["Squibler", 6], ["Sudowrite", 6], ["WriterDuet", 5], ["Highland 2", 3], ["Storyflow", 3]]}, "prices": {"StoryChatPro Writer": {"usd": 12.0, "unit": "month", "category": "AI coach (doesn't write for you)"}, "StoryChatPro Pro": {"usd": 35.0, "unit": "month", "category": "AI coach (doesn't write for you)"}, "Better Draft": {"usd": 35.0, "unit": "month", "category": "AI coach (doesn't write for you)"}, "ScriptFlo": {"usd": 30.0, "unit": "month", "category": "AI coach (doesn't write for you)"}, "Scriptlaunch Pro": {"usd": 14.99, "unit": "month", "category": "AI coach (doesn't write for you)"}, "ChatGPT Plus": {"usd": 20.0, "unit": "month", "category": "General AI chat (DIY)"}, "Claude Pro": {"usd": 20.0, "unit": "month", "category": "General AI chat (DIY)"}, "Google AI Pro (Gemini)": {"usd": 19.99, "unit": "month", "category": "General AI chat (DIY)"}, "Sudowrite": {"usd": 10.0, "unit": "month", "category": "AI writing assistant"}, "Squibler": {"usd": 10.0, "unit": "month", "category": "AI writing assistant"}, "NolanAI": {"usd": 45.0, "unit": "month", "category": "AI writing assistant"}, "Storyflow": {"usd": 7.99, "unit": "month", "category": "AI writing assistant"}, "Arc Studio Pro": {"usd": 5.75, "unit": "month", "category": "Screenwriting software with AI"}, "WriterDuet": {"usd": 9.99, "unit": "month", "category": "Screenwriting software with AI"}, "Final Draft": {"usd": 249.99, "unit": "one-time", "category": "Screenwriting software with AI"}, "OnDesk": {"usd": 20.0, "unit": "month", "category": "AI coverage"}, "ScriptReader.ai": {"usd": 9.99, "unit": "script", "category": "AI coverage"}, "StoryNotes": {"usd": 20.0, "unit": "script", "category": "AI coverage"}, "Prescene": {"usd": 29.0, "unit": "script", "category": "AI coverage"}, "Greenlight Coverage": {"usd": 45.0, "unit": "script", "category": "AI coverage"}, "ScreenplayIQ": {"usd": 50.0, "unit": "script", "category": "AI coverage"}, "Callaia": {"usd": 65.0, "unit": "script", "category": "AI coverage"}, "The Black List": {"usd": 100.0, "unit": "script", "category": "Human evaluation"}, "Coverage Ink": {"usd": 129.0, "unit": "script", "category": "Human coverage"}, "PAGE Awards coverage": {"usd": 149.99, "unit": "script", "category": "Human coverage"}, "Screenplay Readers": {"usd": 159.0, "unit": "script", "category": "Human coverage"}, "Script Reader Pro": {"usd": 185.0, "unit": "script", "category": "Human coverage"}, "Script consultants": {"usd": 300.0, "unit": "engagement", "category": "Human mentorship"}, "Writing Workshops 1:1 mentorship": {"usd": 1400.0, "unit": "engagement", "category": "Human mentorship"}}, "calendar": {"programs": 19, "open_by_month": [1, 4, 5, 8, 7, 5, 3, 1, 1, 4, 2, 0], "closing_by_month": [0, 1, 0, 3, 5, 3, 2, 1, 0, 2, 2, 0], "busiest_month": "Apr", "windows": {"PAGE International Screenwriting Awards": "Jan 15 – May 8 (2026 cycle)", "Austin Film Festival Script Competition": "Mar 27 – May 27 (2026 cycle; closed early at capacity)", "Final Draft Big Break": "Apr 27 – Jun 29 (2026 cycle)", "Academy Nicholl Fellowships": "Jun 8 – Jul 20 via Black List and WGF windows (2026–27 cycle)", "Sundance Development Track (Screenwriters Lab)": "Deadline May 12 (for 2027 lab)", "Disney Entertainment TV Writing Program": "May 4 – Jun 1 (for 2027 program)", "NBCUniversal Launch TV Writers Program": "Typically June", "WBD Access Writers Program": "Typically closes July", "Nickelodeon Writing Program": "Typically Jul – Aug", "Paramount Writers Mentoring Program": "Typically Apr – May", "Humanitas New Voices": "Typically Feb – Apr", "The Writers Lab": "Typically Feb – Apr", "Sesame Workshop Writers' Room": "Typically Mar – Apr", "1497 Features Lab": "Typically Apr – May", "Film Independent Episodic Lab": "Typically closes February", "Film Independent Screenwriting Lab": "Typically closes October", "CAPE New Writers Fellowship": "Typically October", "Fox Entertainment Writers Incubator": "Typically Oct – Nov", "Tribeca All Access": "Typically Sep – Nov"}}, "site": {"checked": 5, "ok": 2, "broken": ["https://www.storychatpro.com/llms.txt", "https://www.storychatpro.com/sitemap.xml", "https://www.storychatpro.com/robots.txt"]}, "sentiment": {"findings": 11, "by_signal": {"cautious": 1, "worried": 1, "hostile": 1, "curious": 1, "rules": 1, "distrust": 2, "pattern": 1, "market gap": 2, "caution": 1}, "items": ["Only 13% of authors used generative AI in their writing; of those 33% for brainstorming and 13% for structuring drafts", "96% of authors want consent and pay before their work trains AI", "Strong resistance to AI in creative writing; many fear their own work will be mistaken for AI", "Screenwriters expect AI to play four roles: actor; audience; expert; executor", "WGA contract: AI cannot get writing credit and studios cannot require writers to use AI", "AI coverage is \"way too nice\" and got the Breaking Bad pilot's act structure wrong", "AI script scores change every time you ask", "Writers use AI for a first pass then pay for human coverage once the script is close", "Peer feedback site CoverflyX shut down Aug 2025 leaving a gap; nonprofit StoryPeer launched to fill it", "Several mid-priced coverage services closed in 2025 (WeScreenplay; Coverfly; ScreenCraft; The Script Lab)", "Vendor blog claims \"67% of professional novelists and screenwriters now use AI\" citing the Authors Guild; the Guild's own published survey says 13%"]}, "market": {"r/Screenwriting members": "1200000", "Stage 32 members": "1000000", "Coverfly registered writers at peak": "70000", "Black List paid evaluations": "128020", "Black List projects evaluated": "71000", "Austin Film Festival script entries": "12500", "Nicholl entries": "5599", "Playwriting & Screenwriting degrees": "863", "Screenwriting software market": "200000000", "Coverage reports per script": "2-4", "Traditional human coverage average": "150-250"}, "previous_scan_date": null, "changes": []}, "cost": {"assumptions": {"mentor_price_per_hour": 200, "plans": {"Writer": 12, "Pro": 35}, "diy_ai_monthly": 20, "note": "Human-only = several paid coverage reports. AI-first = monthly plan during rewrites, then one human read when the script is ready."}, "cases": {"low": {"inputs": {"human_reports": 2, "report_price": 150, "months": 2}, "options": [{"path": "Human only (2 reports)", "usd": 300, "ours": false, "saved_vs_human": 0, "saved_pct": 0}, {"path": "StoryChatPro Writer + mentor hour", "usd": 224, "ours": true, "saved_vs_human": 76, "saved_pct": 25}, {"path": "ChatGPT or Claude + 1 human read", "usd": 190, "ours": false, "saved_vs_human": 110, "saved_pct": 37}, {"path": "StoryChatPro Pro + mentor hour", "usd": 270, "ours": true, "saved_vs_human": 30, "saved_pct": 10}]}, "middle": {"inputs": {"human_reports": 3, "report_price": 200, "months": 3}, "options": [{"path": "Human only (3 reports)", "usd": 600, "ours": false, "saved_vs_human": 0, "saved_pct": 0}, {"path": "StoryChatPro Writer + mentor hour", "usd": 236, "ours": true, "saved_vs_human": 364, "saved_pct": 61}, {"path": "ChatGPT or Claude + 1 human read", "usd": 260, "ours": false, "saved_vs_human": 340, "saved_pct": 57}, {"path": "StoryChatPro Pro + mentor hour", "usd": 305, "ours": true, "saved_vs_human": 295, "saved_pct": 49}]}, "high": {"inputs": {"human_reports": 4, "report_price": 250, "months": 4}, "options": [{"path": "Human only (4 reports)", "usd": 1000, "ours": false, "saved_vs_human": 0, "saved_pct": 0}, {"path": "StoryChatPro Writer + mentor hour", "usd": 248, "ours": true, "saved_vs_human": 752, "saved_pct": 75}, {"path": "ChatGPT or Claude + 1 human read", "usd": 330, "ours": false, "saved_vs_human": 670, "saved_pct": 67}, {"path": "StoryChatPro Pro + mentor hour", "usd": 340, "ours": true, "saved_vs_human": 660, "saved_pct": 66}]}}}, "actions": [{"priority": "1", "action": "Make llms.txt, sitemap.xml and robots.txt load as real files instead of the login page", "why": "Search engines and AI tools can't read the site properly until they do, so every other visibility effort starts behind", "owner_hint": "Whoever maintains the site code"}, {"priority": "2", "action": "Lead marketing with the mentor path: AI feedback until the script scores 7.5, then an hour with a human mentor", "why": "Three other tools now also promise AI that doesn't write for you. None of them offers a path to a human mentor", "owner_hint": "Founders"}, {"priority": "3", "action": "Publish an honest comparison page on storychatpro.com and pitch one independent reviewer such as No Film School", "why": "7 of 10 best-of lists were written by companies that sell a tool. Writing your own is how tools get listed", "owner_hint": "Founders"}], "site": [{"url": "https://www.storychatpro.com/", "should_serve": "Homepage", "actually_served": "Homepage (title \"StoryChatPro — AI Script Coach\")", "ok": "yes", "why_it_matters": "What people and AI tools read about you"}, {"url": "https://www.storychatpro.com/pricing", "should_serve": "Pricing page", "actually_served": "Pricing page (Free, Writer $12, Pro $35)", "ok": "yes", "why_it_matters": "Lets comparison sites list your price"}, {"url": "https://www.storychatpro.com/llms.txt", "should_serve": "Plain-text guide for AI tools", "actually_served": "Login page", "ok": "no", "why_it_matters": "AI tools looking for your summary get a login screen"}, {"url": "https://www.storychatpro.com/sitemap.xml", "should_serve": "List of public pages for search engines", "actually_served": "Login page", "ok": "no", "why_it_matters": "Search engines can't find your public pages"}, {"url": "https://www.storychatpro.com/robots.txt", "should_serve": "Crawler rules file", "actually_served": "Login page", "ok": "no", "why_it_matters": "Crawlers get a login screen instead of rules"}], "deadlines": [{"program": "PAGE International Screenwriting Awards", "type": "Contest", "window_text": "Jan 15 – May 8 (2026 cycle)", "open_month": "1", "close_month": "5", "fee_text": "$49–$89", "cycle_status": "2027 dates not posted yet", "source_url": "https://pageawards.com/the-contest/how-to-enter/"}, {"program": "Austin Film Festival Script Competition", "type": "Contest", "window_text": "Mar 27 – May 27 (2026 cycle; closed early at capacity)", "open_month": "3", "close_month": "5", "fee_text": "$60–$90 (feature)", "cycle_status": "2027 dates not posted yet", "source_url": "https://austinfilmfestival.com/submit-aff-script-competition/"}, {"program": "Final Draft Big Break", "type": "Contest", "window_text": "Apr 27 – Jun 29 (2026 cycle)", "open_month": "4", "close_month": "6", "fee_text": "$45–$85 (feature); $115–$155 with feedback", "cycle_status": "2027 dates not posted yet", "source_url": "https://www.finaldraft.com/big-break-screenwriting-contest/"}, {"program": "Academy Nicholl Fellowships", "type": "Fellowship", "window_text": "Jun 8 – Jul 20 via Black List and WGF windows (2026–27 cycle)", "open_month": "6", "close_month": "7", "fee_text": "Not stated in announcement", "cycle_status": "Fellows named spring 2027", "source_url": "https://press.oscars.org/news/academy-announces-partners-2026-2027-nicholl-fellowships-screenwriting-program"}, {"program": "Sundance Development Track (Screenwriters Lab)", "type": "Lab", "window_text": "Deadline May 12 (for 2027 lab)", "open_month": "5", "close_month": "5", "fee_text": "$45", "cycle_status": "2027 lab cycle closed", "source_url": "https://apply.sundance.org/prog/2027_development_track/"}, {"program": "Disney Entertainment TV Writing Program", "type": "TV fellowship", "window_text": "May 4 – Jun 1 (for 2027 program)", "open_month": "5", "close_month": "6", "fee_text": "Not stated", "cycle_status": "2027 program cycle closed", "source_url": "https://sites.disney.com/ctdi/wpapplication2027/"}, {"program": "NBCUniversal Launch TV Writers Program", "type": "TV fellowship", "window_text": "Typically June", "open_month": "6", "close_month": "6", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "WBD Access Writers Program", "type": "TV fellowship", "window_text": "Typically closes July", "open_month": "6", "close_month": "7", "fee_text": "Not stated", "cycle_status": "No open call as of Sep 30 2026", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "Nickelodeon Writing Program", "type": "TV fellowship", "window_text": "Typically Jul – Aug", "open_month": "7", "close_month": "8", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "Paramount Writers Mentoring Program", "type": "TV fellowship", "window_text": "Typically Apr – May", "open_month": "4", "close_month": "5", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "Humanitas New Voices", "type": "Fellowship", "window_text": "Typically Feb – Apr", "open_month": "2", "close_month": "4", "fee_text": "Entry fee required", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "The Writers Lab", "type": "Lab", "window_text": "Typically Feb – Apr", "open_month": "2", "close_month": "4", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "Sesame Workshop Writers' Room", "type": "TV fellowship", "window_text": "Typically Mar – Apr", "open_month": "3", "close_month": "4", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "1497 Features Lab", "type": "Lab", "window_text": "Typically Apr – May", "open_month": "4", "close_month": "5", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "Film Independent Episodic Lab", "type": "Lab", "window_text": "Typically closes February", "open_month": "2", "close_month": "2", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "Film Independent Screenwriting Lab", "type": "Lab", "window_text": "Typically closes October", "open_month": "10", "close_month": "10", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "CAPE New Writers Fellowship", "type": "Fellowship", "window_text": "Typically October", "open_month": "10", "close_month": "10", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "Fox Entertainment Writers Incubator", "type": "TV fellowship", "window_text": "Typically Oct – Nov", "open_month": "10", "close_month": "11", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}, {"program": "Tribeca All Access", "type": "Lab", "window_text": "Typically Sep – Nov", "open_month": "9", "close_month": "11", "fee_text": "Not stated", "cycle_status": "Typical window", "source_url": "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist"}], "prices": [{"tool": "StoryChatPro Writer", "category": "AI coach (doesn't write for you)", "writes_for_you": "no", "price_text": "$12/month (list $19)", "price_low_usd": "12", "unit": "month", "source_url": "https://www.storychatpro.com/pricing", "checked": "2026-09-30"}, {"tool": "StoryChatPro Pro", "category": "AI coach (doesn't write for you)", "writes_for_you": "no", "price_text": "$35/month (list $49)", "price_low_usd": "35", "unit": "month", "source_url": "https://www.storychatpro.com/pricing", "checked": "2026-09-30"}, {"tool": "Better Draft", "category": "AI coach (doesn't write for you)", "writes_for_you": "no", "price_text": "Free tier; paid from $35/month", "price_low_usd": "35", "unit": "month", "source_url": "https://www.betterdraft.io/blog/ai-screenwriting-software-that-does-not-write-for-you", "checked": "2026-09-30"}, {"tool": "ScriptFlo", "category": "AI coach (doesn't write for you)", "writes_for_you": "no", "price_text": "$30/month; 14-day trial", "price_low_usd": "30", "unit": "month", "source_url": "https://scriptflo.ai/", "checked": "2026-09-30"}, {"tool": "Scriptlaunch Pro", "category": "AI coach (doesn't write for you)", "writes_for_you": "no", "price_text": "$14.99/month; AI coverage $29.99 per script", "price_low_usd": "14.99", "unit": "month", "source_url": "https://nofilmschool.com/scriptlaunch-review", "checked": "2026-09-30"}, {"tool": "ChatGPT Plus", "category": "General AI chat (DIY)", "writes_for_you": "yes", "price_text": "$20/month", "price_low_usd": "20", "unit": "month", "source_url": "https://glcoverage.com/blog/best-ai-tools-for-screenwriters/", "checked": "2026-09-30"}, {"tool": "Claude Pro", "category": "General AI chat (DIY)", "writes_for_you": "yes", "price_text": "$20/month", "price_low_usd": "20", "unit": "month", "source_url": "https://glcoverage.com/blog/best-ai-tools-for-screenwriters/", "checked": "2026-09-30"}, {"tool": "Google AI Pro (Gemini)", "category": "General AI chat (DIY)", "writes_for_you": "yes", "price_text": "$19.99/month", "price_low_usd": "19.99", "unit": "month", "source_url": "https://glcoverage.com/blog/best-ai-tools-for-screenwriters/", "checked": "2026-09-30"}, {"tool": "Sudowrite", "category": "AI writing assistant", "writes_for_you": "yes", "price_text": "About $10–$59/month depending on plan and billing", "price_low_usd": "10", "unit": "month", "source_url": "https://fast.io/resources/best-ai-for-script-writing-2026/", "checked": "2026-09-30"}, {"tool": "Squibler", "category": "AI writing assistant", "writes_for_you": "yes", "price_text": "About $10–$49/month", "price_low_usd": "10", "unit": "month", "source_url": "https://fast.io/resources/best-ai-for-script-writing-2026/", "checked": "2026-09-30"}, {"tool": "NolanAI", "category": "AI writing assistant", "writes_for_you": "yes", "price_text": "Free tier; paid about $45–$75/month", "price_low_usd": "45", "unit": "month", "source_url": "https://www.storynotes.app/blog/free-ai-script-coverage-2026", "checked": "2026-09-30"}, {"tool": "Storyflow", "category": "AI writing assistant", "writes_for_you": "yes", "price_text": "$7.99/month billed yearly", "price_low_usd": "7.99", "unit": "month", "source_url": "https://storyflow.so/blog/best-ai-tools-screenwriters-2026", "checked": "2026-09-30"}, {"tool": "Arc Studio Pro", "category": "Screenwriting software with AI", "writes_for_you": "partly", "price_text": "Free tier; $69–$99/year", "price_low_usd": "5.75", "unit": "month", "source_url": "https://www.finalbitai.com/blog/ai-screenwriting-tools-2026", "checked": "2026-09-30"}, {"tool": "WriterDuet", "category": "Screenwriting software with AI", "writes_for_you": "partly", "price_text": "Free tier; from $9.99/month", "price_low_usd": "9.99", "unit": "month", "source_url": "https://www.finalbitai.com/blog/ai-screenwriting-tools-2026", "checked": "2026-09-30"}, {"tool": "Final Draft", "category": "Screenwriting software with AI", "writes_for_you": "partly", "price_text": "$249.99 one-time", "price_low_usd": "249.99", "unit": "one-time", "source_url": "https://www.finalbitai.com/blog/ai-screenwriting-tools-2026", "checked": "2026-09-30"}, {"tool": "OnDesk", "category": "AI coverage", "writes_for_you": "no", "price_text": "3 free reports; then $20/month for 8 reports", "price_low_usd": "20", "unit": "month", "source_url": "https://www.itsondesk.com/resources/best-script-coverage-services", "checked": "2026-09-30"}, {"tool": "ScriptReader.ai", "category": "AI coverage", "writes_for_you": "no", "price_text": "$9.99 per script", "price_low_usd": "9.99", "unit": "script", "source_url": "https://www.storynotes.app/blog/ai-script-coverage-tools-compared-2026", "checked": "2026-09-30"}, {"tool": "StoryNotes", "category": "AI coverage", "writes_for_you": "no", "price_text": "$20 per script", "price_low_usd": "20", "unit": "script", "source_url": "https://www.storynotes.app/blog/ai-script-coverage-tools-compared-2026", "checked": "2026-09-30"}, {"tool": "Prescene", "category": "AI coverage", "writes_for_you": "no", "price_text": "From $29 per script", "price_low_usd": "29", "unit": "script", "source_url": "https://www.storynotes.app/blog/ai-script-coverage-tools-compared-2026", "checked": "2026-09-30"}, {"tool": "Greenlight Coverage", "category": "AI coverage", "writes_for_you": "no", "price_text": "$45 per script", "price_low_usd": "45", "unit": "script", "source_url": "https://www.storynotes.app/blog/ai-script-coverage-tools-compared-2026", "checked": "2026-09-30"}, {"tool": "ScreenplayIQ", "category": "AI coverage", "writes_for_you": "no", "price_text": "About $50 per script", "price_low_usd": "50", "unit": "script", "source_url": "https://www.storynotes.app/blog/ai-script-coverage-tools-compared-2026", "checked": "2026-09-30"}, {"tool": "Callaia", "category": "AI coverage", "writes_for_you": "no", "price_text": "$65–$79 per script", "price_low_usd": "65", "unit": "script", "source_url": "https://www.storynotes.app/blog/ai-script-coverage-tools-compared-2026", "checked": "2026-09-30"}, {"tool": "The Black List", "category": "Human evaluation", "writes_for_you": "no", "price_text": "$100 per evaluation + $30/month hosting", "price_low_usd": "100", "unit": "script", "source_url": "https://www.storynotes.app/blog/black-list-2026-pricing-explained", "checked": "2026-09-30"}, {"tool": "Coverage Ink", "category": "Human coverage", "writes_for_you": "no", "price_text": "From $129 per script", "price_low_usd": "129", "unit": "script", "source_url": "https://www.itsondesk.com/resources/best-script-coverage-services", "checked": "2026-09-30"}, {"tool": "PAGE Awards coverage", "category": "Human coverage", "writes_for_you": "no", "price_text": "$149.99 per script", "price_low_usd": "149.99", "unit": "script", "source_url": "https://nofilmschool.com/paid-script-coverage-services-test", "checked": "2026-09-30"}, {"tool": "Screenplay Readers", "category": "Human coverage", "writes_for_you": "no", "price_text": "$159 per script", "price_low_usd": "159", "unit": "script", "source_url": "https://screenplayreaders.com/", "checked": "2026-09-30"}, {"tool": "Script Reader Pro", "category": "Human coverage", "writes_for_you": "no", "price_text": "$185–$449 per script", "price_low_usd": "185", "unit": "script", "source_url": "https://www.itsondesk.com/resources/best-script-coverage-services", "checked": "2026-09-30"}, {"tool": "Script consultants", "category": "Human mentorship", "writes_for_you": "no", "price_text": "$300–$2000+ per engagement", "price_low_usd": "300", "unit": "engagement", "source_url": "https://www.itsondesk.com/resources/best-script-coverage-services", "checked": "2026-09-30"}, {"tool": "Writing Workshops 1:1 mentorship", "category": "Human mentorship", "writes_for_you": "no", "price_text": "$1400 for 4 weeks", "price_low_usd": "1400", "unit": "engagement", "source_url": "https://writingworkshops.com/products/screenwriting-4-week-one-on-one-mentorship-with-meredith-alloway", "checked": "2026-09-30"}], "market": [{"measure": "r/Screenwriting members", "value": "1200000", "unit": "people", "year": "undated (2026 listing)", "what_it_counts": "Everyone who joined the subreddit incl. lurkers", "source_type": "community directory", "url": "https://thehiveindex.com/communities/r-screenwriting/"}, {"measure": "Stage 32 members", "value": "1000000", "unit": "people", "year": "2023", "what_it_counts": "All film/TV creatives (not only writers)", "source_type": "press (Variety)", "url": "https://variety.com/2023/biz/news/stage-32-social-network-million-members-1235657508/"}, {"measure": "Coverfly registered writers at peak", "value": "70000", "unit": "writers", "year": "2021", "what_it_counts": "Writers with accounts on the largest contest/discovery hub (closed 2025)", "source_type": "press (TheWrap)", "url": "https://www.thewrap.com/coverfly-reinvent-hollywood-discover-screenwriters/"}, {"measure": "Black List paid evaluations", "value": "128020", "unit": "evaluations over 5 years", "year": "published Feb 2026", "what_it_counts": "Paid human reads of scripts (about 25600 a year)", "source_type": "platform's own data", "url": "https://blcklst.substack.com/p/how-consistent-are-black-list-evaluations"}, {"measure": "Black List projects evaluated", "value": "71000", "unit": "projects over 5 years", "year": "published Feb 2026", "what_it_counts": "Scripts that got at least one paid read (about 14200 a year)", "source_type": "platform's own data", "url": "https://blcklst.substack.com/p/how-consistent-are-black-list-evaluations"}, {"measure": "Austin Film Festival script entries", "value": "12500", "unit": "scripts", "year": "2026", "what_it_counts": "Paid contest entries", "source_type": "festival", "url": "https://austinfilmfestival.com/blog/2026-semifinalists-second-rounders/"}, {"measure": "Nicholl entries", "value": "5599", "unit": "scripts", "year": "2023", "what_it_counts": "Paid contest entries (8191 at 2021 peak; capped at 5500 in 2024)", "source_type": "Academy", "url": "https://www.oscars.org/sites/oscars/files/2024_nicholl_faq.pdf"}, {"measure": "Playwriting & Screenwriting degrees", "value": "863", "unit": "degrees", "year": "2024", "what_it_counts": "Degrees in that exact major (film programs that teach screenwriting are not counted)", "source_type": "federal data via Data USA", "url": "https://datausa.io/profile/cip/playwriting-screenwriting"}, {"measure": "Screenwriting software market", "value": "200000000", "unit": "USD", "year": "2025", "what_it_counts": "Global software sales (IMARC); another firm says $220M", "source_type": "paid research firm", "url": "https://www.imarcgroup.com/screen-script-writing-software-market"}, {"measure": "Coverage reports per script", "value": "2-4", "unit": "reports", "year": "2026", "what_it_counts": "Typical number of paid reads over a script's life (before rewrites and before sending out)", "source_type": "vendor (OnDesk)", "url": "https://www.itsondesk.com/resources/script-coverage-pricing"}, {"measure": "Traditional human coverage average", "value": "150-250", "unit": "USD per report", "year": "2026", "what_it_counts": "Typical price of one human coverage report", "source_type": "vendor (OnDesk)", "url": "https://www.itsondesk.com/resources/script-coverage-pricing"}], "sentiment": [{"finding": "Only 13% of authors used generative AI in their writing; of those 33% for brainstorming and 13% for structuring drafts", "signal": "cautious", "source": "Authors Guild survey", "who_and_when": "2,400+ authors, Dec 2023", "source_type": "independent (writers' guild)", "url": "https://authorsguild.org/news/ag-ai-survey-reveals-authors-overwhelmingly-want-consent-and-compensation-for-use-of-their-works/"}, {"finding": "96% of authors want consent and pay before their work trains AI", "signal": "worried", "source": "Authors Guild survey", "who_and_when": "2,400+ authors, Dec 2023", "source_type": "independent (writers' guild)", "url": "https://authorsguild.org/news/ag-ai-survey-reveals-authors-overwhelmingly-want-consent-and-compensation-for-use-of-their-works/"}, {"finding": "Strong resistance to AI in creative writing; many fear their own work will be mistaken for AI", "signal": "hostile", "source": "Ellipsus writer survey", "who_and_when": "5,202 respondents, Apr 2026", "source_type": "vendor (writing app)", "url": "https://ellipsus.com/blog/survey-on-writing-and-ai"}, {"finding": "Screenwriters expect AI to play four roles: actor; audience; expert; executor", "signal": "curious", "source": "CHI 2025 research paper", "who_and_when": "23 screenwriters interviewed, 2025", "source_type": "academic", "url": "https://arxiv.org/abs/2502.16153"}, {"finding": "WGA contract: AI cannot get writing credit and studios cannot require writers to use AI", "signal": "rules", "source": "WGA 2023 agreement (as summarized)", "who_and_when": "2023 agreement", "source_type": "industry rules (summarized by vendors)", "url": "https://www.scriptreaderpro.com/use-ai-in-screenwriting-ethically/"}, {"finding": "AI coverage is \"way too nice\" and got the Breaking Bad pilot's act structure wrong", "signal": "distrust", "source": "Act Four Screenplays (writing coach)", "who_and_when": "One coach's test, Aug 2025", "source_type": "independent (coach)", "url": "https://actfourscreenplays.com/screenwriting-blog/ai-script-coverage-calvisi/"}, {"finding": "AI script scores change every time you ask", "signal": "distrust", "source": "No Film School", "who_and_when": "Reporter's test, Mar 2026", "source_type": "independent (press)", "url": "https://nofilmschool.com/paid-script-coverage-services-test"}, {"finding": "Writers use AI for a first pass then pay for human coverage once the script is close", "signal": "pattern", "source": "Script Revolution forum and StoryNotes", "who_and_when": "2025–2026", "source_type": "forum + vendor", "url": "https://www.scriptrevolution.com/forums/screenwriting/comparing-ai-generated-coverage-to-human-coverage"}, {"finding": "Peer feedback site CoverflyX shut down Aug 2025 leaving a gap; nonprofit StoryPeer launched to fill it", "signal": "market gap", "source": "No Film School", "who_and_when": "Dec 2025", "source_type": "independent (press)", "url": "https://nofilmschool.com/storypeer-new"}, {"finding": "Several mid-priced coverage services closed in 2025 (WeScreenplay; Coverfly; ScreenCraft; The Script Lab)", "signal": "market gap", "source": "OnDesk (a competitor) and No Film School", "who_and_when": "2025–2026", "source_type": "vendor + press", "url": "https://www.itsondesk.com/resources/best-script-coverage-services"}, {"finding": "Vendor blog claims \"67% of professional novelists and screenwriters now use AI\" citing the Authors Guild; the Guild's own published survey says 13%", "signal": "caution", "source": "Sudowrite blog vs Authors Guild", "who_and_when": "May 2026 vs Dec 2023", "source_type": "vendor claim", "url": "https://sudowrite.com/blog/best-ai-for-screenwriters-in-2026-write-scripts-that-get-read/"}], "sources": ["https://dupple.com/learn/best-ai-for-script-writing", "https://glcoverage.com/blog/best-ai-tools-for-screenwriters/", "https://fast.io/resources/best-ai-for-script-writing-2026/", "https://storyflow.so/blog/best-ai-tools-screenwriters-2026", "https://llamagen.ai/articles/best-ai-tools-screenwriters-2026", "https://www.finalbitai.com/blog/ai-screenwriting-tools-2026", "https://amrytt.com/best-ai-script-writing-tools/", "https://scriptation.com/blog/best-ai-script-coverage-feedback-analysis/", "https://www.storynotes.app/blog/ai-script-coverage-tools-compared-2026", "https://www.betterdraft.io/blog/ai-screenwriting-software-that-does-not-write-for-you", "https://pageawards.com/the-contest/how-to-enter/", "https://austinfilmfestival.com/submit-aff-script-competition/", "https://www.finaldraft.com/big-break-screenwriting-contest/", "https://press.oscars.org/news/academy-announces-partners-2026-2027-nicholl-fellowships-screenwriting-program", "https://apply.sundance.org/prog/2027_development_track/", "https://sites.disney.com/ctdi/wpapplication2027/", "https://www.wgfoundation.org/fellowship-writing-programs-for-screenwriters-masterlist", "https://thehiveindex.com/communities/r-screenwriting/", "https://variety.com/2023/biz/news/stage-32-social-network-million-members-1235657508/", "https://www.thewrap.com/coverfly-reinvent-hollywood-discover-screenwriters/", "https://blcklst.substack.com/p/how-consistent-are-black-list-evaluations", "https://austinfilmfestival.com/blog/2026-semifinalists-second-rounders/", "https://www.oscars.org/sites/oscars/files/2024_nicholl_faq.pdf", "https://datausa.io/profile/cip/playwriting-screenwriting", "https://www.imarcgroup.com/screen-script-writing-software-market", "https://www.itsondesk.com/resources/script-coverage-pricing", "https://scriptflo.ai/", "https://nofilmschool.com/scriptlaunch-review", "https://www.storynotes.app/blog/free-ai-script-coverage-2026", "https://www.itsondesk.com/resources/best-script-coverage-services", "https://www.storynotes.app/blog/black-list-2026-pricing-explained", "https://nofilmschool.com/paid-script-coverage-services-test", "https://screenplayreaders.com/", "https://writingworkshops.com/products/screenwriting-4-week-one-on-one-mentorship-with-meredith-alloway", "https://authorsguild.org/news/ag-ai-survey-reveals-authors-overwhelmingly-want-consent-and-compensation-for-use-of-their-works/", "https://ellipsus.com/blog/survey-on-writing-and-ai", "https://arxiv.org/abs/2502.16153", "https://www.scriptreaderpro.com/use-ai-in-screenwriting-ethically/", "https://actfourscreenplays.com/screenwriting-blog/ai-script-coverage-calvisi/", "https://www.scriptrevolution.com/forums/screenwriting/comparing-ai-generated-coverage-to-human-coverage", "https://nofilmschool.com/storypeer-new", "https://sudowrite.com/blog/best-ai-for-screenwriters-in-2026-write-scripts-that-get-read/"]};
+(function () {
+  const S = DATA.summary, C = DATA.cost, brand = S.brand;
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const money = (n) => "$" + (Math.round(n * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const fmtDate = (iso) => { if (!iso) return ""; const [y, m, d] = iso.split("-").map(Number); return MONTHS[m - 1] + " " + d + ", " + y; };
+  const ICON = {
+    crit: '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 4l4 4M8 4l-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    good: '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.6 6.2l1.7 1.6 3.1-3.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  const pill = (kind, text) => { const p = el("span", "pill " + kind); p.innerHTML = (ICON[kind] || "") ; p.append(text); return p; };
+
+  // Tooltip
+  const tip = $("tip");
+  function bindTip(node, text) {
+    node.addEventListener("pointermove", (e) => {
+      tip.textContent = text; tip.hidden = false;
+      const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+      tip.style.left = x + "px"; tip.style.top = (e.clientY + 14) + "px";
+    });
+    node.addEventListener("pointerleave", () => { tip.hidden = true; });
+  }
+
+  // Bar list: rows [{label, value, text, us, chip, tip}], max for scale
+  function barList(container, rows, max, opts = {}) {
+    rows.forEach((r) => {
+      const row = el("div", "bar-row" + (r.us ? " us" : ""));
+      const lab = el("span", "bar-label", r.label);
+      if (r.chip) lab.append(el("span", "chip", r.chip));
+      const track = el("span", "bar-track");
+      if (r.value > 0) { const b = el("span", "bar"); b.style.width = Math.max(1, (r.value / max) * 100) + "%"; track.append(b); }
+      else if (r.us) track.append(el("span", "zero-mark"));
+      const val = el("span", "bar-val", r.text != null ? r.text : String(r.value));
+      row.append(lab, track, val);
+      bindTip(row, r.tip || (r.label + ": " + (r.text != null ? r.text : r.value)));
+      container.append(row);
+    });
+    if (opts.ticks) {
+      const ax = el("div", "axis"); ax.append(el("span"));
+      const t = el("span", "ticks"); opts.ticks.forEach((v) => t.append(el("span", null, v))); ax.append(t, el("span", "pad"));
+      container.append(ax);
+    }
+  }
+
+  // Header
+  const first = !S.previous_scan_date;
+  $("lede").textContent = "A repeatable check of where screenwriters go for feedback, who they find there, what it costs them, and when they need it most.";
+  $("meta").append(el("span", null, "Scan of " + fmtDate(S.scan_date)));
+  $("meta").append(el("span", null, first ? "First scan · the baseline for next time" : "Compared with " + fmtDate(S.previous_scan_date)));
+  $("meta").append(el("span", null, S.search.queries + " searches · " + S.lists.checked + " lists · " + Object.keys(S.prices).length + " prices · " + S.calendar.programs + " programs"));
+
+  // Tiles
+  const mid = C.cases.middle.options.filter((o) => o.ours).map((o) => o.saved_vs_human);
+  const tiles = [
+    { label: "Writer searches that show " + brand, value: S.search.brand_in_generic, of: S.search.generic_results,
+      pill: S.search.brand_in_generic === 0 ? pill("crit", "Not found") : pill("good", "Showing up") },
+    { label: "Best-of lists that name " + brand, value: S.lists.brand_listed, of: S.lists.checked,
+      pill: S.lists.brand_listed === 0 ? pill("crit", "On none") : pill("good", "Listed") },
+    { label: "Site files crawlers can read", value: S.site.ok, of: S.site.checked,
+      pill: S.site.broken.length ? pill("crit", S.site.broken.length + " show the login page") : pill("good", "All working") },
+    { label: "A writer saves going AI-first (middle case)", valueText: money(Math.min(...mid)) + "–" + money(Math.max(...mid)).slice(1),
+      pill: pill("us", "per script, vs. human only") }
+  ];
+  tiles.forEach((t) => {
+    const d = el("div", "tile");
+    d.append(el("span", "label", t.label));
+    const v = el("span", "value");
+    if (t.valueText) v.textContent = t.valueText; else { v.textContent = t.value + " "; v.append(el("small", null, "of " + t.of)); }
+    d.append(v, t.pill);
+    $("tiles").append(d);
+  });
+
+  // Actions
+  DATA.actions.forEach((a) => {
+    const li = el("li");
+    li.append(el("span", "what", a.action), el("span", "why", a.why), el("span", "who", a.owner_hint));
+    $("actions").append(li);
+  });
+
+  // Changes
+  if (first) {
+    $("changes-title").textContent = "About this scan";
+    ["This is the first scan, so there is nothing to compare yet.",
+     "Next time, attach this scan's workbook and say “Run my StoryChatPro visibility scan.” This box will then list what moved.",
+     "Good times to rerun: January, when contest dates post, and after any site fix."].forEach((t) => $("changes").append(el("li", null, t)));
+  } else if (!S.changes.length) {
+    $("changes").append(el("li", null, "Nothing measurable changed since " + fmtDate(S.previous_scan_date) + "."));
+  } else {
+    S.changes.forEach((t) => $("changes").append(el("li", null, t)));
+  }
+
+  // Search share
+  const top = S.search.top_tools.slice(0, 8);
+  const sMax = Math.max(1, ...top.map((t) => t[1]));
+  $("search-note").innerHTML = "";
+  $("search-note").append("Times each tool appeared across " + S.search.generic_results + " results for " + S.search.generic_queries + " questions writers type. ");
+  const sn = el("strong", null, S.search.vendor_share_pct + "% of those results were written by companies selling a tool."); $("search-note").append(sn);
+  barList($("search-bars"), top.map((t) => ({ label: t[0], value: t[1], tip: t[0] + " appeared in " + t[1] + " of " + S.search.generic_results + " results" }))
+    .concat([{ label: brand, value: S.search.brand_in_generic, us: true, text: String(S.search.brand_in_generic), tip: brand + " appeared in " + S.search.brand_in_generic + " results" }]), sMax,
+    { ticks: [0, sMax] });
+
+  // Lists
+  $("lists-note").append("Out of " + S.lists.checked + " “best AI screenwriting tools” lists. ");
+  $("lists-note").append(el("strong", null, S.lists.by_tool_sellers + " of " + S.lists.checked + " were published by companies that sell their own tools."));
+  barList($("list-bars"), S.lists.most_listed.slice(0, 8).map((t) => ({ label: t[0], value: t[1], text: t[1] + " of " + S.lists.checked, tip: t[0] + " is on " + t[1] + " of " + S.lists.checked + " lists" }))
+    .concat([{ label: brand, value: S.lists.brand_listed, us: true, text: S.lists.brand_listed + " of " + S.lists.checked }]), S.lists.checked,
+    { ticks: [0, S.lists.checked / 2, S.lists.checked] });
+
+  // Cost model
+  function drawCost(which) {
+    const box = $("cost-bars"); box.innerHTML = "";
+    const cs = C.cases[which], max = Math.max(...Object.values(C.cases).flatMap((c) => c.options.map((o) => o.usd)));
+    barList(box, cs.options.map((o) => ({
+      label: o.path, value: o.usd, us: o.ours,
+      text: money(o.usd) + (o.saved_vs_human > 0 ? "  · saves " + o.saved_pct + "%" : ""),
+      tip: o.path + ": " + money(o.usd) + (o.saved_vs_human > 0 ? " (" + money(o.saved_vs_human) + " less than human only)" : "")
+    })), max, { ticks: ["$0", money(max / 2), money(max)] });
+    const i = cs.inputs, A = C.assumptions;
+    $("cost-assume").textContent = "Assumes " + i.human_reports + " human coverage reports at " + money(i.report_price) +
+      " each, or " + i.months + " months of rewrites on a monthly plan followed by one human read. StoryChatPro mentor hour: " +
+      money(A.mentor_price_per_hour) + ". Writer plan " + money(A.plans.Writer) + "/mo, Pro " + money(A.plans.Pro) + "/mo, ChatGPT or Claude " + money(A.diy_ai_monthly) + "/mo.";
+    document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.case === which)));
+  }
+  document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => drawCost(b.dataset.case)));
+  drawCost("middle");
+
+  // Site table
+  const tb = document.querySelector("#site-table tbody");
+  DATA.site.forEach((r) => {
+    const tr = el("tr");
+    const path = r.url.replace(/^https?:\/\/(www\.)?storychatpro\.com/, "") || "/";
+    const a = el("td"); a.append(el("span", null, path)); a.append(el("span", "small", r.should_serve));
+    tr.append(a, el("td", null, r.actually_served));
+    const s = el("td"); s.append(r.ok === "yes" ? pill("good", "OK") : pill("crit", "Broken")); tr.append(s);
+    tb.append(tr);
+  });
+
+  // Calendar
+  const open = S.calendar.open_by_month, cMax = Math.max(1, ...open);
+  const nowM = Number((S.scan_date || "2026-01-01").split("-")[1]);
+  const busiest = MONTHS[open.indexOf(Math.max(...open))];
+  $("cal-note").textContent = "How many of " + S.calendar.programs + " contests, fellowships and labs take applications each month. " + busiest + " is the busiest. Writers want feedback in the weeks before these close.";
+  open.forEach((n, i) => {
+    const m = el("div", "m" + (i + 1 === nowM ? " now" : ""));
+    const c = el("div", "cell", String(n));
+    const pct = n === 0 ? 0 : 18 + Math.round((n / cMax) * 82);
+    c.style.background = n === 0 ? "var(--track)" : "color-mix(in oklab, var(--bar) " + pct + "%, var(--surface))";
+    c.style.color = pct > 55 ? "var(--surface)" : "var(--ink)";
+    m.append(c, el("span", "mon", MONTHS[i]));
+    bindTip(m, MONTHS[i] + ": " + n + " program" + (n === 1 ? "" : "s") + " open" + (i + 1 === nowM ? " (this scan's month)" : ""));
+    $("cal").append(m);
+  });
+  const lg = $("cal-legend"); lg.append("Fewer");
+  const ramp = el("span", "ramp"); [18, 45, 72, 100].forEach((p) => { const s = el("span"); s.style.background = "color-mix(in oklab, var(--bar) " + p + "%, var(--surface))"; ramp.append(s); });
+  lg.append(ramp, "More", el("span", null, "· Outlined month: when this scan ran"));
+  const inWindow = (r, m) => { const a = +r.open_month, b = +r.close_month; return a <= b ? (m >= a && m <= b) : (m >= a || m <= b); };
+  const soonMonths = [nowM, nowM % 12 + 1, (nowM + 1) % 12 + 1];
+  const soon = DATA.deadlines.filter((r) => soonMonths.some((m) => inWindow(r, m)));
+  (soon.length ? soon : DATA.deadlines.slice(0, 3)).forEach((r) => {
+    const li = el("li"); li.append(el("span", null, r.program), el("span", "when", r.window_text)); $("soon").append(li);
+  });
+
+  // Prices
+  const mRows = DATA.prices.filter((r) => r.unit === "month").sort((a, b) => a.price_low_usd - b.price_low_usd);
+  const pRows = DATA.prices.filter((r) => r.unit === "script").sort((a, b) => a.price_low_usd - b.price_low_usd);
+  const shortCat = (c) => c.startsWith("AI coach") ? "AI coach" : c.replace("General AI chat (DIY)", "General AI").replace("Screenwriting software with AI", "Software").replace("AI writing assistant", "Writes for you");
+  const mMax = Math.max(...mRows.map((r) => +r.price_low_usd));
+  barList($("monthly-bars"), mRows.map((r) => ({ label: r.tool, value: +r.price_low_usd, us: r.tool.startsWith(brand), chip: shortCat(r.category), text: money(+r.price_low_usd), tip: r.tool + ": " + r.price_text })), mMax);
+  const mentorUsd = C.assumptions.mentor_price_per_hour;
+  const perScript = pRows.map((r) => ({ label: r.tool, value: +r.price_low_usd, chip: r.category.replace("Human evaluation", "Human").replace("Human coverage", "Human").replace("AI coverage", "AI"), text: money(+r.price_low_usd), tip: r.tool + ": " + r.price_text }))
+    .concat([{ label: brand + " mentor hour", value: mentorUsd, us: true, chip: "Human", text: money(mentorUsd), tip: brand + " mentor session, unlocked at a 7.5 score: " + money(mentorUsd) + " per hour" }])
+    .sort((a, b) => a.value - b.value);
+  barList($("script-bars"), perScript, Math.max(...perScript.map((r) => r.value)));
+
+  // Market
+  const mt = document.querySelector("#market-table tbody");
+  const fmtNum = (v) => !/^\d+$/.test(v) ? v : Number(v) >= 1e6 ? (Number(v) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 1 }) + " million" : Number(v).toLocaleString("en-US");
+  DATA.market.forEach((r) => {
+    const tr = el("tr"); const a = el("td");
+    a.append(el("span", null, r.measure)); a.append(el("span", "small", r.what_it_counts + " · " + r.year));
+    const n = el("td", "num", (r.unit === "USD" ? "$" : "") + fmtNum(r.value) + (r.unit.startsWith("USD per") ? " each" : ""));
+    tr.append(a, n); mt.append(tr);
+  });
+
+  // Voices
+  DATA.sentiment.forEach((r) => {
+    const li = el("li");
+    li.append(el("span", "tag " + r.signal.replace(/\s+/g, "-"), r.signal));
+    li.append(el("span", null, r.finding));
+    const src = el("span", "src"); const a = el("a", null, r.source); a.href = r.url; a.target = "_blank"; a.rel = "noopener";
+    src.append(a, " · " + r.who_and_when + " · " + r.source_type); li.append(src);
+    $("voices").append(li);
+  });
+
+  // Footer
+  $("method").textContent = "How this scan works: the same " + S.search.queries + " web searches, " + S.lists.checked +
+    " best-of lists, price pages, contest pages and site addresses are checked each run, then counted by a script. Results come from one search engine on one day and vary by person and place. They show the pages AI tools draw from, not ChatGPT's actual answers.";
+  DATA.sources.forEach((u) => { const li = el("li"); const a = el("a", null, u.replace(/^https?:\/\/(www\.)?/, "")); a.href = u; a.target = "_blank"; a.rel = "noopener"; li.append(a); $("sources").append(li); });
+})();
+</script>
+
+</body></html>
